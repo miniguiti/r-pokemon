@@ -1,0 +1,4 @@
+Name: Mostrar GIF
+Description: Abre um GIF na aba Viewer
+Binding: mostrar_gif
+Interactive: false

@@ -28,10 +28,12 @@ mostrar_gif <- function() {
   happy_icon <- file.path(reaction_root, "happy.png")
   heart_icon <- file.path(reaction_root, "heart.png")
   pokeball_icon <- file.path(reaction_root, "pokeball.png")
+  add_icon <- file.path(reaction_root, "light-add.svg")
 
   if (!file.exists(happy_icon)) stop("Arquivo 'happy.png' não encontrado em 'reaction'.")
   if (!file.exists(heart_icon)) stop("Arquivo 'heart.png' não encontrado em 'reaction'.")
   if (!file.exists(pokeball_icon)) stop("Arquivo 'pokeball.png' não encontrado em 'reaction'.")
+  if (!file.exists(add_icon)) stop("Arquivo 'light-add.svg' não encontrado em 'reaction'.")
 
   gif_files <- list.files(
     gen4_root,
@@ -98,8 +100,8 @@ mostrar_gif <- function() {
   sprite_list <- lapply(pokemon_dirs, build_sprite_set)
   sprite_list <- sprite_list[!vapply(sprite_list, is.null, logical(1))]
 
-  if (length(sprite_list) < 4) {
-    stop("São necessários pelo menos 4 pokémons com GIFs default/shiny (walk+idle).")
+  if (length(sprite_list) < 5) {
+    stop("São necessários pelo menos 5 pokémons com GIFs default/shiny (walk+idle).")
   }
 
   sprite_sets <- do.call(rbind, sprite_list)
@@ -162,12 +164,13 @@ mostrar_gif <- function() {
   happy_name <- copy_asset(happy_icon, "reaction")
   heart_name <- copy_asset(heart_icon, "reaction")
   pokeball_name <- copy_asset(pokeball_icon, "reaction")
+  add_name <- copy_asset(add_icon, "reaction")
 
   scene_count <- max(6L, min(12L, nrow(sprite_sets)))
   scene_configs <- vector("list", scene_count)
 
   for (scene_index in seq_len(scene_count)) {
-    selected_rows <- sample(seq_len(nrow(sprite_sets)), 4, replace = FALSE)
+    selected_rows <- sample(seq_len(nrow(sprite_sets)), 5, replace = FALSE)
     selected_pairs <- sprite_sets[selected_rows, , drop = FALSE]
     selected_background <- sample(background_files, 1)
 
@@ -233,12 +236,9 @@ mostrar_gif <- function() {
           to { transform: translateX(518px); }
         }
         .reroll-btn {
-          position: absolute;
-          top: 8px;
-          right: 8px;
           z-index: 20;
-          width: 60px;
-          height: 60px;
+          width: 72px;
+          height: 72px;
           border: 0;
           background: transparent;
           padding: 0;
@@ -250,20 +250,48 @@ mostrar_gif <- function() {
           object-fit: contain;
           image-rendering: pixelated;
         }
+        .control-bar {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          z-index: 20;
+          display: flex;
+          gap: 8px;
+          align-items: center;
+        }
+        .add-btn {
+          width: 22px;
+          height: 22px;
+          border: 0;
+          border-radius: 10px;
+          background: rgba(0, 0, 0, 0.72);
+          padding: 6px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .add-btn img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+        }
       </style>
       <script>
         document.addEventListener('DOMContentLoaded', function () {
           var scenes = [",
     scene_configs_js,
     "];
-          var lanesBottom = [8, 70, 132, 194];
-          var lanesDuration = [6.0, 5.0, 6.8, 5.7];
-          var lanesDelay = [0.0, -1.1, -2.0, -0.6];
+          var lanesBottom = [8, 60, 112, 164, 216];
+          var lanesDuration = [6.0, 5.0, 6.8, 5.7, 6.3];
+          var lanesDelay = [0.0, -1.1, -2.0, -0.6, -1.6];
 
           var sceneEl = document.getElementById('scene');
           var runnersLayer = document.getElementById('runners-layer');
           var rerollBtn = document.getElementById('reroll-btn');
+          var addBtn = document.getElementById('add-btn');
           var currentSceneIndex = 0;
+          var currentPokemonCount = 1;
 
           function buildRunner(pokemon, index) {
             var runner = document.createElement('div');
@@ -348,9 +376,13 @@ mostrar_gif <- function() {
             sceneEl.style.boxShadow = '0 0 18px ' + scene.theme;
 
             runnersLayer.innerHTML = '';
-            scene.pokemons.forEach(function (pokemon, idx) {
+            scene.pokemons.slice(0, currentPokemonCount).forEach(function (pokemon, idx) {
               runnersLayer.appendChild(buildRunner(pokemon, idx));
             });
+
+            addBtn.disabled = currentPokemonCount >= 5;
+            addBtn.style.opacity = addBtn.disabled ? '0.45' : '1';
+            addBtn.style.cursor = addBtn.disabled ? 'not-allowed' : 'pointer';
           }
 
           rerollBtn.addEventListener('click', function () {
@@ -366,15 +398,27 @@ mostrar_gif <- function() {
             renderScene(currentSceneIndex);
           });
 
+          addBtn.addEventListener('click', function () {
+            if (currentPokemonCount < 5) {
+              currentPokemonCount += 1;
+              renderScene(currentSceneIndex);
+            }
+          });
+
           renderScene(currentSceneIndex);
         });
       </script>
     </head>
      <body style='margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#111;'>
        <div class='scene' id='scene' style='background-size:640px 360px;background-position:center;background-repeat:no-repeat;'>
-         <button class='reroll-btn' id='reroll-btn' title='Novo cenário'>
-           <img src='", pokeball_name, "'>
-         </button>
+         <div class='control-bar'>
+           <button class='add-btn' id='add-btn' title='Adicionar pokémon'>
+             <img src='", add_name, "'>
+           </button>
+           <button class='reroll-btn' id='reroll-btn' title='Novo cenário'>
+             <img src='", pokeball_name, "'>
+           </button>
+         </div>
          <div class='runners-layer' id='runners-layer'></div>
        </div>
      </body></html>"
